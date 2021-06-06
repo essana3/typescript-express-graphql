@@ -1,21 +1,15 @@
-import { Arg, Authorized, Mutation, Query, Resolver } from 'type-graphql';
+import { Arg, Args, Authorized, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 
-import { User } from '../models/user.model';
+import { Context, LoginData, LoginArgs, RegisterArgs, UserArgs } from '../types';
 
-import { LoginData, LoginInput, RegisterInput } from '../types/user.type';
+import { UsersService } from '../services';
 
-import UsersService from '../services/users.service';
+import { User, UserDocument } from '../models';
 
 @Resolver()
 export default class UsersResolver {
-  @Authorized()
-  @Query()
-  hello(): string {
-    return 'Hello World!';
-  }
-
   @Mutation(() => LoginData)
-  async register(@Arg('input') input: RegisterInput): Promise<LoginData> {
+  async register(@Args() input: RegisterArgs): Promise<LoginData> {
     const user = await UsersService.create(input);
     const token = user.generateToken();
 
@@ -23,11 +17,11 @@ export default class UsersResolver {
   }
 
   @Query(() => LoginData, { nullable: true })
-  async login(@Arg('input') { email, password }: LoginInput): Promise<LoginData> {
+  async login(@Args() { email, password }: LoginArgs): Promise<LoginData> {
     const user = await UsersService.findOne({ email }).select('+password');
 
     if (user) {
-      const valid = await user.comparePassword(user.password, password);
+      const valid = await user.comparePassword(password);
 
       if (valid) {
         const token = user.generateToken();
@@ -36,5 +30,23 @@ export default class UsersResolver {
     }
 
     throw new Error('user does not exist');
+  }
+
+  @Authorized()
+  @Query(() => [User])
+  async users(): Promise<UserDocument[]> {
+    return UsersService.find();
+  }
+
+  @Authorized()
+  @Query(() => User, { nullable: true })
+  async user(@Arg('id') _id: string): Promise<UserDocument | null> {
+    return UsersService.findOne({ _id });
+  }
+
+  @Authorized()
+  @Mutation(() => User, { nullable: true })
+  async updateUser(@Args() input: UserArgs, @Ctx() { user }: Context): Promise<User | null> {
+    return UsersService.update({ _id: user._id }, input);
   }
 }

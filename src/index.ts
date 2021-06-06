@@ -1,18 +1,21 @@
 import 'reflect-metadata';
-import { mongoose } from '@typegoose/typegoose';
 import { ApolloServer } from 'apollo-server-express';
 import cors from 'cors';
-import express, { Application } from 'express';
+import express, { json } from 'express';
 import jwt from 'express-jwt';
-import { GraphQLSchema } from 'graphql';
+import mongoose from 'mongoose';
 import { buildSchema } from 'type-graphql';
 
 // Load environment
 import environment from './config/environment';
 
 // Load middleware
-import authChecker from './middleware/auth.checker';
+import { authChecker, TypegooseMiddleware } from './middleware';
 
+// Load scalars
+import scalarsMap from './scalars';
+
+// Main
 const main = async (): Promise<void> => {
   try {
     await mongoose.connect(environment.dbURL, {
@@ -22,54 +25,44 @@ const main = async (): Promise<void> => {
       useFindAndModify: false
     });
     console.log('** Connection to database has been established successfully **');
+
+    const schema = await buildSchema({
+      authChecker,
+      globalMiddlewares: [TypegooseMiddleware],
+      resolvers: [`${__dirname}/resolvers/*.resolver.{ts,js}`],
+      scalarsMap
+    });
+
+    const apolloServer = new ApolloServer({
+      schema,
+      context: ({ req }) => ({ req, user: req.user })
+    });
+
+    const app = express();
+
+    app.use(
+      json({
+        limit: '50mb'
+      }),
+      cors({
+        credentials: true,
+        origin: environment.appURL
+      }),
+      jwt({
+        algorithms: ['HS512'],
+        credentialsRequired: false,
+        secret: environment.jwt.secret
+      })
+    );
+
+    apolloServer.applyMiddleware({ app });
+
+    await app.listen(environment.port);
+
+    console.log(`** Started listening on ${environment.appURL}${apolloServer.graphqlPath} **`);
   } catch (error) {
-    console.log(`Unable to connect to database: ${error.message.split('\n').shift()}`);
+    console.error(error);
   }
-
-  const schema: GraphQLSchema = await buildSchema({
-    resolvers: [`${__dirname}/resolvers/*.resolver.ts`],
-    authChecker
-  });
-
-  const server: ApolloServer = new ApolloServer({
-    schema,
-    context: ({ req }) => ({ req, user: req.user })
-  });
-
-  const app: Application = express();
-
-  app.use(
-    express.json({
-      limit: '50mb'
-    })
-  );
-
-  app.use(
-    express.urlencoded({
-      extended: true
-    })
-  );
-
-  app.use(
-    cors({
-      credentials: true,
-      origin: environment.appURL
-    })
-  );
-
-  app.use(
-    jwt({
-      algorithms: ['HS512'],
-      credentialsRequired: false,
-      secret: environment.jwt.secret
-    })
-  );
-
-  server.applyMiddleware({ app });
-
-  app.listen(environment.port, () => {
-    console.log(`** Started listening on ${environment.appURL}${server.graphqlPath} **`);
-  });
 };
 
-main().catch(console.error);
+main();

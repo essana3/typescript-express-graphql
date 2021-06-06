@@ -5,7 +5,7 @@ import {
   ValidatorConstraintInterface
 } from 'class-validator';
 
-import UsersService from '../services/users.service';
+import { UsersService } from '../services';
 
 @ValidatorConstraint({ async: true })
 class IsEmailExistsConstraint implements ValidatorConstraintInterface {

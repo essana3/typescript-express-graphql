@@ -1,11 +1,32 @@
 import { IsEmail, IsNotEmpty, Length } from 'class-validator';
-import { Field, InputType, ObjectType } from 'type-graphql';
+import { ArgsType, Field, ObjectType } from 'type-graphql';
 
-import { IsEmailExists } from '../validators/user.validator';
+import { IsEmailExists } from '../validators';
 
-import { User } from '../models/user.model';
-@InputType()
-export class RegisterInput {
+import { User, UserDocument } from '../models';
+
+// @InputType()
+@ArgsType()
+export class UserArgs implements Partial<User> {
+  @Field({ nullable: true })
+  @Length(1, 255)
+  firstName: string;
+
+  @Field({ nullable: true })
+  @Length(1, 255)
+  lastName: string;
+
+  @Field({ nullable: true })
+  @IsEmail()
+  email: string;
+
+  @Field({ nullable: true })
+  @IsNotEmpty()
+  password: string;
+}
+
+@ArgsType()
+export class RegisterArgs implements Partial<User> {
   @Field()
   @Length(1, 255)
   firstName: string;
@@ -24,8 +45,8 @@ export class RegisterInput {
   password: string;
 }
 
-@InputType()
-export class LoginInput {
+@ArgsType()
+export class LoginArgs implements Partial<User> {
   @Field()
   @IsEmail()
   @IsEmailExists(true, { message: 'user does not exist' })
@@ -38,7 +59,7 @@ export class LoginInput {
 
 @ObjectType()
 export class LoginData {
-  @Field(() => User)
+  @Field()
   user: User;
 
   @Field()
