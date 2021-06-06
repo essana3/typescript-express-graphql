@@ -3,14 +3,15 @@ import { mongoose } from '@typegoose/typegoose';
 import { ApolloServer } from 'apollo-server-express';
 import cors from 'cors';
 import express, { Application } from 'express';
+import jwt from 'express-jwt';
 import { GraphQLSchema } from 'graphql';
 import { buildSchema } from 'type-graphql';
 
 // Load environment
 import environment from './config/environment';
 
-// Load resolvers
-import UsersResolver from './resolvers/users.resolver';
+// Load middleware
+import authChecker from './middleware/auth.checker';
 
 const main = async (): Promise<void> => {
   try {
@@ -26,11 +27,13 @@ const main = async (): Promise<void> => {
   }
 
   const schema: GraphQLSchema = await buildSchema({
-    resolvers: [UsersResolver]
+    resolvers: [`${__dirname}/resolvers/*.resolver.ts`],
+    authChecker
   });
 
-  const apolloServer: ApolloServer = new ApolloServer({
-    schema
+  const server: ApolloServer = new ApolloServer({
+    schema,
+    context: ({ req }) => ({ req, user: req.user })
   });
 
   const app: Application = express();
@@ -54,10 +57,18 @@ const main = async (): Promise<void> => {
     })
   );
 
-  apolloServer.applyMiddleware({ app });
+  app.use(
+    jwt({
+      algorithms: ['HS512'],
+      credentialsRequired: false,
+      secret: environment.jwt.secret
+    })
+  );
+
+  server.applyMiddleware({ app });
 
   app.listen(environment.port, () => {
-    console.log(`** Started listening on ${environment.playgroundURL} **`);
+    console.log(`** Started listening on ${environment.appURL}${server.graphqlPath} **`);
   });
 };
 

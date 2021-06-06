@@ -1,6 +1,11 @@
 import argon2, { argon2id } from 'argon2';
+import jwt from 'jsonwebtoken';
+import { Types } from 'mongoose';
 import { Field, ID, ObjectType } from 'type-graphql';
 import { getModelForClass, modelOptions, pre, prop as Property } from '@typegoose/typegoose';
+
+// Load environment
+import environment from '../config/environment';
 
 @ObjectType()
 @modelOptions({
@@ -19,7 +24,7 @@ import { getModelForClass, modelOptions, pre, prop as Property } from '@typegoos
 })
 export class User {
   @Field(() => ID)
-  readonly _id: string;
+  readonly _id: Types.ObjectId;
 
   @Field()
   @Property({ required: true, trim: true })
@@ -33,7 +38,7 @@ export class User {
   @Property({ required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
-  @Property({ required: true })
+  @Property({ required: true, select: false })
   password!: string;
 
   @Field()
@@ -46,8 +51,15 @@ export class User {
     return `${this.firstName} ${this.lastName}`;
   }
 
-  comparePassword(password: string): Promise<boolean> {
-    return argon2.verify(this.password, password);
+  comparePassword(hash: string, password: string): Promise<boolean> {
+    return argon2.verify(hash, password, { type: argon2id });
+  }
+
+  generateToken(): string {
+    return jwt.sign({ ...this }, environment.jwt.secret, {
+      algorithm: 'HS512',
+      issuer: environment.jwt.issuer
+    });
   }
 }
 

@@ -1,8 +1,9 @@
 import { IsEmail, IsNotEmpty, Length } from 'class-validator';
-import { Field, InputType } from 'type-graphql';
+import { Field, InputType, ObjectType } from 'type-graphql';
 
 import { IsEmailExists } from '../validators/user.validator';
 
+import { User } from '../models/user.model';
 @InputType()
 export class RegisterInput {
   @Field()
@@ -33,4 +34,13 @@ export class LoginInput {
   @Field()
   @IsNotEmpty()
   password: string;
+}
+
+@ObjectType()
+export class LoginData {
+  @Field(() => User)
+  user: User;
+
+  @Field()
+  token: string;
 }
