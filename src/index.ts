@@ -12,9 +12,6 @@ import environment from './config/environment';
 // Load middleware
 import { authChecker, TypegooseMiddleware } from './middleware';
 
-// Load scalars
-import scalarsMap from './scalars';
-
 // Main
 const main = async (): Promise<void> => {
   try {
@@ -29,8 +26,7 @@ const main = async (): Promise<void> => {
     const schema = await buildSchema({
       authChecker,
       globalMiddlewares: [TypegooseMiddleware],
-      resolvers: [`${__dirname}/resolvers/*.resolver.{ts,js}`],
-      scalarsMap
+      resolvers: [`${__dirname}/resolvers/*.resolver.{ts,js}`]
     });
 
     const apolloServer = new ApolloServer({

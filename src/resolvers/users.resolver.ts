@@ -6,7 +6,7 @@ import { UsersService } from '../services';
 
 import { User, UserDocument } from '../models';
 
-@Resolver()
+@Resolver(() => User)
 export default class UsersResolver {
   @Mutation(() => LoginData)
   async register(@Args() input: RegisterArgs): Promise<LoginData> {
@@ -25,6 +25,7 @@ export default class UsersResolver {
 
       if (valid) {
         const token = user.generateToken();
+
         return { user, token };
       }
     }
@@ -46,7 +47,10 @@ export default class UsersResolver {
 
   @Authorized()
   @Mutation(() => User, { nullable: true })
-  async updateUser(@Args() input: UserArgs, @Ctx() { user }: Context): Promise<User | null> {
+  async updateUser(
+    @Args() input: UserArgs,
+    @Ctx() { user }: Context
+  ): Promise<UserDocument | null> {
     return UsersService.update({ _id: user._id }, input);
   }
 }

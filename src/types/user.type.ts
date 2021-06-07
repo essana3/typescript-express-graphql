@@ -3,9 +3,8 @@ import { ArgsType, Field, ObjectType } from 'type-graphql';
 
 import { IsEmailExists } from '../validators';
 
-import { User, UserDocument } from '../models';
+import { User } from '../models';
 
-// @InputType()
 @ArgsType()
 export class UserArgs implements Partial<User> {
   @Field({ nullable: true })

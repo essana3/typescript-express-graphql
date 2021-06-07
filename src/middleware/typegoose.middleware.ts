@@ -1,6 +1,6 @@
-import { getClassForDocument } from '@typegoose/typegoose';
 import { Model, Document } from 'mongoose';
 import { MiddlewareFn } from 'type-graphql';
+import { getClassForDocument } from '@typegoose/typegoose';
 
 export const TypegooseMiddleware: MiddlewareFn = async (_, next) => {
   const result = await next();
@@ -17,7 +17,7 @@ export const TypegooseMiddleware: MiddlewareFn = async (_, next) => {
 };
 
 export const convertDocument = (doc: Document): any => {
-  const convertedDocument = doc.toJSON();
+  const convertedDocument = doc.toObject();
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const DocumentClass = getClassForDocument(doc)!;
   Object.setPrototypeOf(convertedDocument, DocumentClass.prototype);

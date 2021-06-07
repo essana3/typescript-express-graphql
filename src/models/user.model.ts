@@ -24,12 +24,10 @@ import environment from '../config/environment';
   }
 })
 @pre<User>('save', async function (this: UserDocument) {
-  if (this.isModified('password')) {
-    this.password = await argon2.hash(this.password, { type: argon2id });
-  }
+  this.password = await argon2.hash(this.password, { type: argon2id });
 })
 export class User {
-  @Field()
+  @Field(() => ID)
   readonly _id: ObjectId;
 
   get id(): string {
@@ -67,13 +65,15 @@ export class User {
   }
 
   generateToken(this: UserDocument): string {
-    const payload = this.toJSON();
+    const payload = this.toObject();
     delete payload.password;
 
-    return jwt.sign(payload, environment.jwt.secret, {
+    const token = jwt.sign(payload, environment.jwt.secret, {
       algorithm: 'HS512',
       issuer: environment.jwt.issuer
     });
+
+    return `Bearer ${token}`;
   }
 }
 
